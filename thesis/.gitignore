@@ -1,4 +1,6 @@
 *.pdf
+!images/project_structure_resources.pdf
+!images/project_structure_scripts.pdf
 *.aux
 *.acn
 *.glo
