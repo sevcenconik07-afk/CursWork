@@ -1,6 +1,16 @@
 @echo off
 setlocal EnableExtensions
 
+set "FORCE_ARG="
+if /I "%~1"=="-f" (
+    set "FORCE_ARG=--force"
+    shift /1
+)
+if /I "%~1"=="--force" (
+    set "FORCE_ARG=--force"
+    shift /1
+)
+
 set "ACTIVE_FILE=%~1"
 if "%ACTIVE_FILE%"=="" (
     >&2 echo VS Code thesis render: open a .tex file inside thesis/ and press F5.
@@ -73,15 +83,15 @@ if not defined ACTIVE_FILE_WSL (
 
 if defined DISTRO (
     if defined THESIS_VSCODE_NO_BROWSER (
-        wsl.exe -d %DISTRO% env THESIS_VSCODE_NO_BROWSER="%THESIS_VSCODE_NO_BROWSER%" bash "%SCRIPT_WSL%" "%ACTIVE_FILE_WSL%"
+        wsl.exe -d %DISTRO% env THESIS_VSCODE_NO_BROWSER="%THESIS_VSCODE_NO_BROWSER%" bash "%SCRIPT_WSL%" %FORCE_ARG% "%ACTIVE_FILE_WSL%"
     ) else (
-        wsl.exe -d %DISTRO% bash "%SCRIPT_WSL%" "%ACTIVE_FILE_WSL%"
+        wsl.exe -d %DISTRO% bash "%SCRIPT_WSL%" %FORCE_ARG% "%ACTIVE_FILE_WSL%"
     )
 ) else (
     if defined THESIS_VSCODE_NO_BROWSER (
-        wsl.exe env THESIS_VSCODE_NO_BROWSER="%THESIS_VSCODE_NO_BROWSER%" bash "%SCRIPT_WSL%" "%ACTIVE_FILE_WSL%"
+        wsl.exe env THESIS_VSCODE_NO_BROWSER="%THESIS_VSCODE_NO_BROWSER%" bash "%SCRIPT_WSL%" %FORCE_ARG% "%ACTIVE_FILE_WSL%"
     ) else (
-        wsl.exe bash "%SCRIPT_WSL%" "%ACTIVE_FILE_WSL%"
+        wsl.exe bash "%SCRIPT_WSL%" %FORCE_ARG% "%ACTIVE_FILE_WSL%"
     )
 )
 

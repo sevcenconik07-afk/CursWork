@@ -20,6 +20,23 @@
                     "cwd": "${env:USERPROFILE}"
                 }
             }
+        },
+        {
+            "label": "Thesis: Force Render Active TeX",
+            "type": "shell",
+            "command": "${workspaceFolder}/.vscode/render-active-tex.sh",
+            "args": [
+                "--force",
+                "${file}"
+            ],
+            "problemMatcher": [],
+            "windows": {
+                "command": "cmd.exe /D /C call \"${workspaceFolder}\\.vscode\\render-active-tex.cmd\" --force \"${file}\"",
+                "args": [],
+                "options": {
+                    "cwd": "${env:USERPROFILE}"
+                }
+            }
         }
     ]
 }

@@ -5,10 +5,12 @@
             "name": "Thesis: Render Active TeX",
             "type": "node-terminal",
             "request": "launch",
-            "command": "${workspaceFolder}/.vscode/render-active-tex.sh \"${file}\"",
+            "preLaunchTask": "Thesis: Render Active TeX",
+            "command": "exit 0",
             "cwd": "${workspaceFolder}",
+            "internalConsoleOptions": "neverOpen",
             "windows": {
-                "command": "cmd.exe /D /C call \"${workspaceFolder}\\.vscode\\render-active-tex.cmd\" \"${file}\"",
+                "command": "exit 0",
                 "cwd": "${env:USERPROFILE}"
             }
         }

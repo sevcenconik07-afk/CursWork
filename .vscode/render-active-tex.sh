@@ -19,41 +19,34 @@ is_wsl() {
     grep -qiE '(microsoft|wsl)' /proc/version 2>/dev/null
 }
 
-windows_file_uri() {
-    local windows_path
-    windows_path="$(wslpath -w "$1")"
-
-    if command -v python3 >/dev/null 2>&1; then
-        python3 - "$windows_path" <<'PY'
-from pathlib import PureWindowsPath
-import sys
-from urllib.parse import quote
-
-path = PureWindowsPath(sys.argv[1])
-parts = [quote(part, safe='') for part in path.parts[1:]]
-
-if path.drive.startswith('\\\\'):
-    host, share = path.drive.lstrip('\\').split('\\', 1)
-    print(f"file://{host}/{quote(share, safe='')}/{'/'.join(parts)}")
-elif path.drive:
-    drive = path.drive.rstrip(':')
-    print(f"file:///{drive}:/{'/'.join(parts)}")
-else:
-    print('file:///' + '/'.join(quote(part, safe='') for part in path.parts))
-PY
-        return 0
-    fi
-
-    printf 'file:///%s\n' "${windows_path//\\//}"
-}
-
 open_pdf_in_browser() {
     local pdf_path=$1
-    local uri
+    local uri windows_path
+
+    if is_wsl && command -v wslpath >/dev/null 2>&1 && command -v powershell.exe >/dev/null 2>&1; then
+        windows_path="$(wslpath -w "$pdf_path")"
+        if powershell.exe -NoProfile -Command "& { param([string]\$path) \$uri = [System.Uri]::new(\$path).AbsoluteUri; Start-Process \$uri }" "$windows_path" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
 
     if is_wsl && command -v wslpath >/dev/null 2>&1 && command -v cmd.exe >/dev/null 2>&1; then
-        uri="$(windows_file_uri "$pdf_path")"
-        cmd.exe /C start "" "$uri" >/dev/null 2>&1 &
+        windows_path="$(wslpath -m "$pdf_path")"
+        case "$windows_path" in
+            //*|[[:alpha:]]:/*)
+                uri="file:$windows_path"
+                if [ "${windows_path:0:2}" != "//" ]; then
+                    uri="file:///$windows_path"
+                fi
+                cmd.exe /C start "" "$uri" >/dev/null 2>&1 &
+                return 0
+                ;;
+        esac
+    fi
+
+    if is_wsl && command -v wslpath >/dev/null 2>&1 && command -v explorer.exe >/dev/null 2>&1; then
+        windows_path="$(wslpath -w "$pdf_path")"
+        explorer.exe "$windows_path" >/dev/null 2>&1 &
         return 0
     fi
 
@@ -84,9 +77,25 @@ PY
     printf 'No browser opener was found. Open the PDF manually.\n' >&2
 }
 
+render_args=()
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -f|--force)
+            render_args+=(--force)
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 active_file=${1:-}
 [ -n "$active_file" ] || die "open a .tex file inside thesis/ and press F5."
 [ -f "$active_file" ] || die "active file does not exist: $active_file"
+if [ "$#" -gt 1 ]; then
+    die "unexpected arguments after active file: ${*:2}"
+fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 workspace_dir="$(cd -- "$script_dir/.." && pwd -P)"
@@ -112,7 +121,7 @@ esac
 
 cd -- "$thesis_dir"
 set +e
-./render.sh --input "$relative_input"
+./render.sh "${render_args[@]}" --input "$relative_input"
 render_status=$?
 set -e
 
@@ -126,8 +135,16 @@ pdf_path="$thesis_dir/${relative_input%.tex}.pdf"
 printf 'Built PDF: %s\n' "$pdf_path"
 
 if [ "${THESIS_VSCODE_NO_BROWSER:-}" = "1" ]; then
+    if [ "$render_status" -eq 4 ]; then
+        exit 0
+    fi
+
     exit "$render_status"
 fi
 
 open_pdf_in_browser "$pdf_path"
+if [ "$render_status" -eq 4 ]; then
+    exit 0
+fi
+
 exit "$render_status"

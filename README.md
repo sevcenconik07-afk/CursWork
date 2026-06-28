@@ -86,6 +86,8 @@ This also works when VS Code is opened on Windows through a WSL path.
 
 The same command is available as the default build task, so `Ctrl+Shift+B`
 also renders the currently open `.tex` file.
+To clear generated Latex files and rebuild with `render.sh -f`, run
+`Tasks: Run Task` and choose `Thesis: Force Render Active TeX`.
 
 VS Code is also configured to hide repository internals and generated Latex
 files from the Explorer, while keeping generated PDFs visible.
