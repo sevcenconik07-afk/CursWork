@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Thesis: Render Active TeX",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "${workspaceFolder}/.vscode/render-active-tex.sh \"${file}\"",
+            "cwd": "${workspaceFolder}",
+            "windows": {
+                "command": "cmd.exe /D /C call \"${workspaceFolder}\\.vscode\\render-active-tex.cmd\" \"${file}\"",
+                "cwd": "${env:USERPROFILE}"
+            }
+        }
+    ]
+}

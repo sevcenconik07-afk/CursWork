@@ -11,3 +11,4 @@ temp
 .venv/
 __pycache__/
 *.py[cod]
+*-config-code-*.tmp

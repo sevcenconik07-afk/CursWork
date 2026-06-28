@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Thesis: Render Active TeX",
+            "type": "shell",
+            "command": "${workspaceFolder}/.vscode/render-active-tex.sh",
+            "args": [
+                "${file}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "windows": {
+                "command": "cmd.exe /D /C call \"${workspaceFolder}\\.vscode\\render-active-tex.cmd\" \"${file}\"",
+                "args": [],
+                "options": {
+                    "cwd": "${env:USERPROFILE}"
+                }
+            }
+        }
+    ]
+}

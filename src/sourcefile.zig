@@ -14,3 +14,11 @@ pub fn test_func() i32
 }
 // Segment example end
 
+pub fn autogobble_demo() i32
+{
+    // Segment autogobble_example begin
+        const base: i32 = 40;
+        const increment: i32 = 2;
+        return base + increment;
+    // Segment autogobble_example end
+}

@@ -12,6 +12,7 @@
 *.blg
 errors.txt
 _minted*
+generated-code-segments/
 *.pyg
 *.synctex*
 *.fdb_latexmk

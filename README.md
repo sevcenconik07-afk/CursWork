@@ -77,6 +77,19 @@ Run `source ./setup.sh`. It is going to:
    ./render.sh
    ```
 
+### VS Code
+
+This repository includes a VS Code launch configuration. Open any `.tex`
+file inside `thesis/` and press `F5` to render it with `thesis/render.sh`
+and open the generated PDF in your browser automatically.
+This also works when VS Code is opened on Windows through a WSL path.
+
+The same command is available as the default build task, so `Ctrl+Shift+B`
+also renders the currently open `.tex` file.
+
+VS Code is also configured to hide repository internals and generated Latex
+files from the Explorer, while keeping generated PDFs visible.
+
 ## But I don't know Latex...
 
 Here's an overview of the process:
@@ -105,4 +118,3 @@ To recompile having cleared the cache, run `./render.sh -f`.
 
 > Note that clearing the cache relies on `git`, 
 > so you **must have your project be a git repository.**
-

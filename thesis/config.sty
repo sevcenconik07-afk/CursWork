@@ -157,12 +157,14 @@
 \newcommand{\config@floatReferenceWarningRo}[1]{ATENȚIE: această imagine, acest tabel sau acest bloc de cod nu este referit în text: #1.}
 \newcommand{\config@bibliographyReferenceWarningRo}[1]{ATENȚIE: aceste surse nu sunt citate în text: #1.}
 \newcommand{\config@codeSegmentReferenceWarningRo}[2]{ATENȚIE: segmentul de cod nu a fost găsit: #1 în #2.}
+\newcommand{\config@codeSegmentUnsupportedLanguageWarningRo}[2]{ATENȚIE: limbajul pentru segmentul de cod nu este suportat: #1 în #2.}
 \newcommand{\config@volumePageRangeWarningRo}[4]{ATENȚIE: #1 trebuie să aibă #3-#4 pagini, acum are #2.}
 \newcommand{\config@volumeMinimumWarningRo}[3]{ATENȚIE: #1 trebuie să aibă cel puțin #3, acum are #2.}
 \newcommand{\config@appendixReferenceWarningRu}[1]{ВНИМАНИЕ: это приложение или элемент приложения не упоминается в тексте: #1.}
 \newcommand{\config@floatReferenceWarningRu}[1]{ВНИМАНИЕ: этот рисунок, таблица или блок кода не упоминается в тексте: #1.}
 \newcommand{\config@bibliographyReferenceWarningRu}[1]{ВНИМАНИЕ: эти источники не упоминаются в тексте: #1.}
 \newcommand{\config@codeSegmentReferenceWarningRu}[2]{ВНИМАНИЕ: сегмент кода не найден: #1 в #2.}
+\newcommand{\config@codeSegmentUnsupportedLanguageWarningRu}[2]{ВНИМАНИЕ: язык сегмента кода не поддерживается: #1 в #2.}
 \newcommand{\config@volumePageRangeWarningRu}[4]{ВНИМАНИЕ: #1 должен занимать #3-#4 страницы, сейчас #2.}
 \newcommand{\config@volumeMinimumWarningRu}[3]{ВНИМАНИЕ: #1 должен содержать минимум #3, сейчас #2.}
 \newcommand{\configVisibleWarningMarker}{%
@@ -191,6 +193,7 @@
   \let\floatReferenceWarning\config@floatReferenceWarningRo
   \let\bibliographyReferenceWarning\config@bibliographyReferenceWarningRo
   \let\codeSegmentReferenceWarning\config@codeSegmentReferenceWarningRo
+  \let\codeSegmentUnsupportedLanguageWarningText\config@codeSegmentUnsupportedLanguageWarningRo
   \let\volumePageRangeWarning\config@volumePageRangeWarningRo
   \let\volumeMinimumWarning\config@volumeMinimumWarningRo
 }
@@ -221,6 +224,7 @@
   \let\floatReferenceWarning\config@floatReferenceWarningRu
   \let\bibliographyReferenceWarning\config@bibliographyReferenceWarningRu
   \let\codeSegmentReferenceWarning\config@codeSegmentReferenceWarningRu
+  \let\codeSegmentUnsupportedLanguageWarningText\config@codeSegmentUnsupportedLanguageWarningRu
   \let\volumePageRangeWarning\config@volumePageRangeWarningRu
   \let\volumeMinimumWarning\config@volumeMinimumWarningRu
 }
@@ -1600,8 +1604,66 @@
   \end{table}%
 }
 
+\makeatletter
 \NewDocumentCommand{\configOptionalCodeCaption}{o}{%
   \IfNoValueF{#1}{\caption*{#1}}%
+}
+\NewDocumentCommand{\configOptionalBreakableCodeCaption}{o}{%
+  \IfNoValueF{#1}{\captionof*{listing}{#1}}%
+}
+
+\newsavebox{\config@codeContentBox}
+\newcounter{config@directCodeFile}
+\newlength{\config@codeContentHeight}
+\newlength{\config@codeFloatBodyHeightLimit}
+\setlength{\config@codeFloatBodyHeightLimit}{\dimexpr\textheight-5\baselineskip\relax}
+
+% Regular listings stay as floats. Only code bodies too tall to fit on a text
+% page are unpacked so TeX can break them before the footer/page number.
+\newcommand{\config@typesetMeasuredCode}[3]{%
+  \setbox\config@codeContentBox=\vbox{%
+    \hsize=\linewidth
+    \linewidth=\hsize
+    \parindent=0pt
+    \noindent
+    #3%
+  }%
+  \setlength{\config@codeContentHeight}{\dimexpr\ht\config@codeContentBox+\dp\config@codeContentBox\relax}%
+  \ifdim\config@codeContentHeight>\config@codeFloatBodyHeightLimit
+    #2%
+    \par\unvbox\config@codeContentBox\par
+  \else
+    \begin{listing}[!htbp]
+      #1%
+      \par\box\config@codeContentBox\par
+    \end{listing}%
+  \fi
+}
+
+\NewDocumentCommand{\config@codeNumberedLabel}{m m}{%
+  \IfNoValueTF{#1}
+    {\insertFloatLabelHelper{\BooleanFalse}{}{#2}}
+    {\insertFloatLabelHelper{\BooleanFalse}[#1]{}{#2}}%
+}
+
+\NewDocumentCommand{\config@codeSegmentNumberedLabel}{m}{%
+  \config@codeNumberedLabel{#1}{insertCodeSegment}%
+}
+
+\NewDocumentCommand{\config@codeEnvironmentNumberedLabel}{m}{%
+  \config@codeNumberedLabel{#1}{code}%
+}
+
+\NewDocumentCommand{\config@codeFileNumberedLabel}{m m m}{%
+  \IfNoValueTF{#1}{%
+    \if\relax\detokenize{#2}\relax
+      \insertFloatLabelHelper{\BooleanFalse}{#3}{insertCodeFile}%
+    \else
+      \insertFloatLabelHelper{\BooleanFalse}{}{insertCodeFile}%
+    \fi
+  }{%
+    \insertFloatLabelHelper{\BooleanFalse}[#1]{}{insertCodeFile}%
+  }%
 }
 
 % 1 - Optional label identifier. Required in the unstarred form.
@@ -1610,27 +1672,39 @@
 % 4 - Caption text.
 \NewDocumentEnvironment{code}{o O{} m m}{%
   \VerbatimEnvironment
-  \begin{listing}[!htbp]
-    \caption{#4}%
-    \insertFloatLabelHelper{\BooleanFalse}[#1]{}{code}%
-    \par\noindent
-    \begin{minted}[#2]{#3}%
+  \stepcounter{config@directCodeFile}%
+  \edef\config@directCodeFilePath{\jobname-config-code-\arabic{config@directCodeFile}.tmp}%
+  \begin{VerbatimOut}{\config@directCodeFilePath}%
 }{%
-    \end{minted}%
-  \end{listing}%
+  \end{VerbatimOut}%
+  \config@typesetMeasuredCode
+    {%
+      \caption{#4}%
+      \config@codeEnvironmentNumberedLabel{#1}%
+    }{%
+      \captionof{listing}{#4}%
+      \config@codeEnvironmentNumberedLabel{#1}%
+    }{%
+      \inputminted[#2]{#3}{\config@directCodeFilePath}%
+    }%
 }
 
 % 1 - Minted options.
 % 2 - Programming language.
 \NewDocumentEnvironment{codeWithoutLabel}{O{linenos=false} m}{%
   \VerbatimEnvironment
-  \insertFloatLabelHelper{\BooleanTrue}{}{codeWithoutLabel}%
-  \begin{listing}[!htbp]
-    \par\noindent
-    \begin{minted}[#1]{#2}%
+  \stepcounter{config@directCodeFile}%
+  \edef\config@directCodeFilePath{\jobname-config-code-\arabic{config@directCodeFile}.tmp}%
+  \begin{VerbatimOut}{\config@directCodeFilePath}%
 }{%
-    \end{minted}%
-  \end{listing}%
+  \end{VerbatimOut}%
+  \insertFloatLabelHelper{\BooleanTrue}{}{codeWithoutLabel}%
+  \config@typesetMeasuredCode
+    {}%
+    {}%
+    {%
+      \inputminted[#1]{#2}{\config@directCodeFilePath}%
+    }%
 }
 
 \NewDocumentCommand{\insertCodeFile}{s}{%
@@ -1643,20 +1717,16 @@
 % 4 - Source file path.
 % 5 - Caption text.
 \NewDocumentCommand{\insertCodeFileNumbered}{o O{} m m m}{%
-  \begin{listing}[!htbp]
-    \caption{#5}%
-    \IfNoValueTF{#1}{%
-      \if\relax\detokenize{#2}\relax
-        \insertFloatLabelHelper{\BooleanFalse}{#4}{insertCodeFile}%
-      \else
-        \insertFloatLabelHelper{\BooleanFalse}{}{insertCodeFile}%
-      \fi
+  \config@typesetMeasuredCode
+    {%
+      \caption{#5}%
+      \config@codeFileNumberedLabel{#1}{#2}{#4}%
     }{%
-      \insertFloatLabelHelper{\BooleanFalse}[#1]{}{insertCodeFile}%
+      \captionof{listing}{#5}%
+      \config@codeFileNumberedLabel{#1}{#2}{#4}%
+    }{%
+      \inputminted[#2]{#3}{#4}%
     }%
-    \par\noindent
-    \inputminted[#2]{#3}{#4}%
-  \end{listing}%
 }
 
 % 1 - Minted options.
@@ -1665,11 +1735,14 @@
 % 4 - Optional unnumbered caption.
 \NewDocumentCommand{\insertCodeFileStar}{O{} m m o}{%
   \insertFloatLabelHelper{\BooleanTrue}{}{insertCodeFile}%
-  \begin{listing}[!htbp]
-    \configOptionalCodeCaption[#4]%
-    \par\noindent
-    \inputminted[#1]{#2}{#3}%
-  \end{listing}%
+  \config@typesetMeasuredCode
+    {%
+      \configOptionalCodeCaption[#4]%
+    }{%
+      \configOptionalBreakableCodeCaption[#4]%
+    }{%
+      \inputminted[#1]{#2}{#3}%
+    }%
 }
 
 \NewDocumentCommand{\insertCodeSegment}{s}{%
@@ -1682,12 +1755,16 @@
 % 4 - Segment name.
 % 5 - Caption text.
 \NewDocumentCommand{\insertCodeSegmentNumbered}{o O{} m m m}{%
-  \begin{listing}[!htbp]
-    \caption{#5}%
-    \insertFloatLabelHelper{\BooleanFalse}[#1]{}{insertCodeSegment}%
-    \par\noindent
-    \inputMintedSegment[#2]{#3}{#4}%
-  \end{listing}%
+  \config@typesetMeasuredCode
+    {%
+      \caption{#5}%
+      \config@codeSegmentNumberedLabel{#1}%
+    }{%
+      \captionof{listing}{#5}%
+      \config@codeSegmentNumberedLabel{#1}%
+    }{%
+      \inputMintedSegment[#2]{#3}{#4}%
+    }%
 }
 
 % 1 - Minted options.
@@ -1696,12 +1773,16 @@
 % 4 - Optional unnumbered caption.
 \NewDocumentCommand{\insertCodeSegmentStar}{O{} m m o}{%
   \insertFloatLabelHelper{\BooleanTrue}{}{insertCodeSegment}%
-  \begin{listing}[!htbp]
-    \configOptionalCodeCaption[#4]%
-    \par\noindent
-    \inputMintedSegment[#1]{#2}{#3}%
-  \end{listing}%
+  \config@typesetMeasuredCode
+    {%
+      \configOptionalCodeCaption[#4]%
+    }{%
+      \configOptionalBreakableCodeCaption[#4]%
+    }{%
+      \inputMintedSegment[#1]{#2}{#3}%
+    }%
 }
+\makeatother
 
 % See the python script.
 % It inserts the minted listing text.
@@ -1714,6 +1795,14 @@
   \PackageWarning{config}{Code segment '#1' was not found in '#2'}%
   \par\noindent\textbf{\textcolor{red}{%
     \codeSegmentReferenceWarning{\texttt{#1}}{\texttt{#2}}%
+  }}\par
+}
+
+\newcommand{\codeSegmentUnsupportedLanguageWarning}[2]{%
+  \configVisibleWarningMarker
+  \PackageWarning{config}{Code segment language '#1' is not supported for '#2'}%
+  \par\noindent\textbf{\textcolor{red}{%
+    \codeSegmentUnsupportedLanguageWarningText{\texttt{#1}}{\texttt{#2}}%
   }}\par
 }
 

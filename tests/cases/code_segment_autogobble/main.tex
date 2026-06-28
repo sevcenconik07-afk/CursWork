@@ -1,0 +1,11 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[romanian,custom]{config}
+
+\begin{document}
+\chapter{Code Segment Autogobble}
+Top segment reference: \ref{code:top}.
+Indented segment reference: \ref{code:indented}.
+
+\insertCodeSegment[code:top][linenos=false]{source.zig}{top}{Top segment}
+\insertCodeSegment[code:indented][linenos=false]{source.zig}{indented}{Indented segment}
+\end{document}

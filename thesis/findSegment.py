@@ -1,5 +1,7 @@
 import sys
 import os
+import hashlib
+from pathlib import Path
 
 COMMENT_STYLES = {
     "zig": ("//", ""),
@@ -40,6 +42,23 @@ def print_warning(segment_name, file_path):
     )
 
 
+def print_unsupported_language_warning(language, file_path):
+    print(
+        "\\codeSegmentUnsupportedLanguageWarning"
+        f"{{{latex_escape(language)}}}"
+        f"{{{latex_escape(file_path)}}}",
+        flush=True,
+    )
+
+
+def generated_segment_path(file_path, segment_name, language):
+    cache_key = f"{Path(file_path).resolve()}\0{segment_name}".encode("utf-8")
+    file_hash = hashlib.sha256(cache_key).hexdigest()[:16]
+    segment_dir = Path("generated-code-segments")
+    segment_dir.mkdir(exist_ok=True)
+    return segment_dir / f"{file_hash}.{language}"
+
+
 def main():
     filePath = sys.argv[1]
     segmentName = sys.argv[2]
@@ -47,7 +66,7 @@ def main():
     language = os.path.splitext(filePath)[1].lstrip(".").lower()
 
     if language not in COMMENT_STYLES:
-        print_warning(segmentName, filePath)
+        print_unsupported_language_warning(language or "unknown", filePath)
         return 0
 
     if not os.path.exists(filePath):
@@ -60,8 +79,10 @@ def main():
 
     segmentBegin = -1
     segmentEnd = -1
+    lines = []
     with open(filePath, "r", encoding="utf-8") as fp:
-        for index, line in enumerate(fp):
+        lines = fp.readlines()
+        for index, line in enumerate(lines):
             if segmentBeginString in line:
                 segmentBegin = index
             if segmentEndString in line:
@@ -71,11 +92,14 @@ def main():
         print_warning(segmentName, filePath)
         return 0
 
-    options = f"firstline={segmentBegin + 2},lastline={segmentEnd}"
+    segment_path = generated_segment_path(filePath, segmentName, language)
+    segment_path.write_text("".join(lines[segmentBegin + 1 : segmentEnd]), encoding="utf-8")
+
+    options = f"firstnumber={segmentBegin + 2}"
     if extraOptions:
         options = f"{options},{extraOptions}"
 
-    print(f"\\inputminted[{options}]{{{language}}}{{{filePath}}}", flush=True)
+    print(f"\\inputminted[{options}]{{{language}}}{{{segment_path}}}", flush=True)
     return 0
 
 
